@@ -9,6 +9,11 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
+      // Proxy .well-known to Express server for domain association file
+      '/.well-known': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
   build: {
@@ -17,5 +22,7 @@ export default defineConfig({
       input: resolve(__dirname, 'src/index.html'),
     },
   },
+  // Vite automatically serves files from public directory
+  publicDir: 'public',
 });
 

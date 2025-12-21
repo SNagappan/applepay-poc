@@ -24,31 +24,66 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve Apple Pay domain association file with correct content type
+// This MUST be before any other routes to ensure it's handled correctly
 app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
   const filePath = join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association');
   
+  console.log(`[Domain Association] Request for: ${req.path}`);
+  console.log(`[Domain Association] File path: ${filePath}`);
+  console.log(`[Domain Association] File exists: ${fs.existsSync(filePath)}`);
+  
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'text/plain');
-    res.sendFile(filePath);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error(`[Domain Association] Error sending file: ${err.message}`);
+        if (!res.headersSent) {
+          res.status(500).send('Error serving domain association file');
+        }
+      }
+    });
   } else {
+    console.error(`[Domain Association] File not found: ${filePath}`);
     res.status(404).send('Domain association file not found');
   }
 });
 
 // Also serve with .txt extension for compatibility
 app.get('/.well-known/apple-developer-merchantid-domain-association.txt', (req, res) => {
+  // Try .txt file first, then fallback to file without extension
+  const txtFilePath = join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association.txt');
   const filePath = join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association');
   
-  if (fs.existsSync(filePath)) {
+  console.log(`[Domain Association] Request for: ${req.path}`);
+  console.log(`[Domain Association] .txt file path: ${txtFilePath}`);
+  console.log(`[Domain Association] .txt file exists: ${fs.existsSync(txtFilePath)}`);
+  console.log(`[Domain Association] Fallback file path: ${filePath}`);
+  console.log(`[Domain Association] Fallback file exists: ${fs.existsSync(filePath)}`);
+  
+  let pathToServe = null;
+  if (fs.existsSync(txtFilePath)) {
+    pathToServe = txtFilePath;
+  } else if (fs.existsSync(filePath)) {
+    pathToServe = filePath;
+  }
+  
+  if (pathToServe) {
     res.setHeader('Content-Type', 'text/plain');
-    res.sendFile(filePath);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(pathToServe, (err) => {
+      if (err) {
+        console.error(`[Domain Association] Error sending file: ${err.message}`);
+        if (!res.headersSent) {
+          res.status(500).send('Error serving domain association file');
+        }
+      }
+    });
   } else {
+    console.error(`[Domain Association] File not found: ${txtFilePath} or ${filePath}`);
     res.status(404).send('Domain association file not found');
   }
 });
-
-// Serve other static files from public directory
-app.use('/.well-known', express.static(join(__dirname, '../public/.well-known')));
 
 // In production, serve built Vite assets
 if (config.nodeEnv === 'production') {
