@@ -221,9 +221,31 @@
   -apple-pay-button-type: pay;
   -apple-pay-button-style: black;
   width: 100%;
+  min-height: 48px;
   height: 48px;
   margin: 10px 0;
   border-radius: 8px;
+}
+
+/* Fallback for browsers without Apple Pay support */
+.apple-pay-button button {
+  width: 100%;
+  height: 48px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.apple-pay-button button:hover {
+  background: #333;
 }
 
 .status-message {

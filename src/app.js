@@ -31,8 +31,10 @@ class ApplePayApp {
     // Load configuration from backend
     await this.loadConfig();
 
-    // Check Apple Pay availability
-    this.checkApplePaySupport();
+    // Check Apple Pay availability (with delay to ensure merchant ID is loaded)
+    setTimeout(() => {
+      this.checkApplePaySupport();
+    }, 100);
 
     logger.info('Application initialized');
   }
@@ -260,16 +262,20 @@ class ApplePayApp {
   checkApplePaySupport() {
     if (!window.ApplePaySession) {
       logger.warn('Apple Pay is not supported in this browser');
+      // Show button anyway for testing purposes
+      this.showApplePayButton();
       return false;
     }
 
     if (!window.ApplePaySession.canMakePayments()) {
       logger.warn('Apple Pay is not available on this device');
+      // Show button anyway for testing purposes
+      this.showApplePayButton();
       return false;
     }
 
     // Check if can make payments with merchant
-    if (window.ApplePaySession.canMakePaymentsWithActiveCard) {
+    if (window.ApplePaySession.canMakePaymentsWithActiveCard && this.merchantId) {
       window.ApplePaySession.canMakePaymentsWithActiveCard(this.merchantId)
         .then((canMakePayments) => {
           if (canMakePayments) {
@@ -277,15 +283,19 @@ class ApplePayApp {
             logger.info('Apple Pay is available and ready');
           } else {
             logger.warn('No active Apple Pay cards available');
+            // Show button anyway for testing purposes
+            this.showApplePayButton();
           }
         })
         .catch((error) => {
           logger.error(error, { context: 'Checking Apple Pay availability' });
+          // Show button anyway for testing purposes
+          this.showApplePayButton();
         });
     } else {
-      // Fallback: show button anyway (older Safari versions)
+      // Fallback: show button anyway (older Safari versions or no merchant ID yet)
       this.showApplePayButton();
-      logger.info('Apple Pay button shown (availability check not supported)');
+      logger.info('Apple Pay button shown (availability check not supported or merchant ID not loaded)');
     }
 
     return true;
@@ -297,6 +307,7 @@ class ApplePayApp {
   showApplePayButton() {
     const container = document.getElementById('applePayContainer');
     const wrapper = document.getElementById('applePayButtonWrapper');
+    const button = document.getElementById('applePayButton');
     
     if (container && wrapper) {
       container.classList.remove('hidden');
@@ -309,7 +320,18 @@ class ApplePayApp {
         wrapper.dataset.handlerAttached = 'true';
       }
       
+      // If Apple Pay button doesn't render (not in Safari), show fallback button
+      setTimeout(() => {
+        if (button && (!window.ApplePaySession || button.offsetHeight === 0)) {
+          button.innerHTML = '<button style="width: 100%; height: 48px; background: #000; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;">Pay with Apple Pay</button>';
+          button.style.display = 'block';
+          logger.info('Fallback Apple Pay button displayed (Apple Pay not available in this browser)');
+        }
+      }, 500);
+      
       logger.event('Apple Pay Button Displayed');
+    } else {
+      logger.warn('Apple Pay button container not found');
     }
   }
 
