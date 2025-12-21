@@ -26,13 +26,26 @@ app.use(express.urlencoded({ extended: true }));
 // Serve Apple Pay domain association file with correct content type
 // This MUST be before any other routes to ensure it's handled correctly
 app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res) => {
-  const filePath = join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association');
+  // Try multiple possible paths for Vercel and local development
+  const possiblePaths = [
+    join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association'),
+    join(process.cwd(), 'public/.well-known/apple-developer-merchantid-domain-association'),
+    join(process.cwd(), '.well-known/apple-developer-merchantid-domain-association'),
+  ];
+  
+  let filePath = null;
+  for (const path of possiblePaths) {
+    if (fs.existsSync(path)) {
+      filePath = path;
+      break;
+    }
+  }
   
   console.log(`[Domain Association] Request for: ${req.path}`);
-  console.log(`[Domain Association] File path: ${filePath}`);
-  console.log(`[Domain Association] File exists: ${fs.existsSync(filePath)}`);
+  console.log(`[Domain Association] Trying paths:`, possiblePaths);
+  console.log(`[Domain Association] File found: ${filePath}`);
   
-  if (fs.existsSync(filePath)) {
+  if (filePath && fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.sendFile(filePath, (err) => {
@@ -44,29 +57,50 @@ app.get('/.well-known/apple-developer-merchantid-domain-association', (req, res)
       }
     });
   } else {
-    console.error(`[Domain Association] File not found: ${filePath}`);
+    console.error(`[Domain Association] File not found in any of these paths:`, possiblePaths);
     res.status(404).send('Domain association file not found');
   }
 });
 
 // Also serve with .txt extension for compatibility
 app.get('/.well-known/apple-developer-merchantid-domain-association.txt', (req, res) => {
-  // Try .txt file first, then fallback to file without extension
-  const txtFilePath = join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association.txt');
-  const filePath = join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association');
+  // Try multiple possible paths for Vercel and local development
+  const possibleTxtPaths = [
+    join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association.txt'),
+    join(process.cwd(), 'public/.well-known/apple-developer-merchantid-domain-association.txt'),
+    join(process.cwd(), '.well-known/apple-developer-merchantid-domain-association.txt'),
+  ];
   
-  console.log(`[Domain Association] Request for: ${req.path}`);
-  console.log(`[Domain Association] .txt file path: ${txtFilePath}`);
-  console.log(`[Domain Association] .txt file exists: ${fs.existsSync(txtFilePath)}`);
-  console.log(`[Domain Association] Fallback file path: ${filePath}`);
-  console.log(`[Domain Association] Fallback file exists: ${fs.existsSync(filePath)}`);
+  const possiblePaths = [
+    join(__dirname, '../public/.well-known/apple-developer-merchantid-domain-association'),
+    join(process.cwd(), 'public/.well-known/apple-developer-merchantid-domain-association'),
+    join(process.cwd(), '.well-known/apple-developer-merchantid-domain-association'),
+  ];
   
   let pathToServe = null;
-  if (fs.existsSync(txtFilePath)) {
-    pathToServe = txtFilePath;
-  } else if (fs.existsSync(filePath)) {
-    pathToServe = filePath;
+  
+  // Try .txt file first
+  for (const path of possibleTxtPaths) {
+    if (fs.existsSync(path)) {
+      pathToServe = path;
+      break;
+    }
   }
+  
+  // Fallback to file without extension
+  if (!pathToServe) {
+    for (const path of possiblePaths) {
+      if (fs.existsSync(path)) {
+        pathToServe = path;
+        break;
+      }
+    }
+  }
+  
+  console.log(`[Domain Association] Request for: ${req.path}`);
+  console.log(`[Domain Association] Trying .txt paths:`, possibleTxtPaths);
+  console.log(`[Domain Association] Trying fallback paths:`, possiblePaths);
+  console.log(`[Domain Association] File found: ${pathToServe}`);
   
   if (pathToServe) {
     res.setHeader('Content-Type', 'text/plain');
@@ -80,7 +114,7 @@ app.get('/.well-known/apple-developer-merchantid-domain-association.txt', (req, 
       }
     });
   } else {
-    console.error(`[Domain Association] File not found: ${txtFilePath} or ${filePath}`);
+    console.error(`[Domain Association] File not found in any of these paths:`, [...possibleTxtPaths, ...possiblePaths]);
     res.status(404).send('Domain association file not found');
   }
 });

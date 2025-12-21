@@ -9,14 +9,14 @@
   "routes": [
     {
       "src": "/.well-known/apple-developer-merchantid-domain-association",
-      "dest": "/public/.well-known/apple-developer-merchantid-domain-association",
+      "dest": "/server/index.js",
       "headers": {
         "Content-Type": "text/plain"
       }
     },
     {
       "src": "/.well-known/apple-developer-merchantid-domain-association.txt",
-      "dest": "/public/.well-known/apple-developer-merchantid-domain-association.txt",
+      "dest": "/server/index.js",
       "headers": {
         "Content-Type": "text/plain"
       }
@@ -30,6 +30,7 @@
       "dest": "/server/index.js"
     }
   ],
+  "public": true,
   "env": {
     "NODE_ENV": "production"
   }
