@@ -170,6 +170,10 @@ Create a `.env` file in the project root (copy from `env.example`) and configure
 #### Server Configuration
 - `PORT` (default: 3000) - Server port number
 - `NODE_ENV` (default: development) - Environment mode
+- `BACKEND_URL` (optional) - Backend URL for Vite proxy in development
+  - **Local development**: `http://localhost:3000` (default)
+  - **Production/Domain**: `https://your-domain.com` or `https://applepay-poc.vercel.app`
+  - **Important**: Set this to your domain when deploying to production
 
 #### Apple Pay Configuration
 
@@ -294,19 +298,24 @@ For production use, configure Authorize.Net webhooks:
 
 ### Development Mode
 
-1. **Start development server**:
+1. **Configure backend URL** (if using domain):
+   - Set `BACKEND_URL` in `.env` file to your domain (e.g., `https://applepay-poc.vercel.app`)
+   - For local development, leave empty or use `http://localhost:3000`
+
+2. **Start development server**:
    ```bash
    npm run dev
    ```
 
    This will:
    - Start Vite dev server on http://localhost:5173
-   - Start Express backend on http://localhost:3000
-   - Proxy API requests from frontend to backend
+   - Start Express backend on http://localhost:3000 (or use BACKEND_URL from .env)
+   - Proxy API requests from frontend to backend (using BACKEND_URL if set)
 
-2. **Access the application**:
+3. **Access the application**:
    - Open http://localhost:5173 in Safari (required for Apple Pay)
    - Note: Apple Pay requires HTTPS in production, but works on localhost in development
+   - **For domain testing**: Set `BACKEND_URL` to your domain URL in `.env`
 
 ### Production Build
 

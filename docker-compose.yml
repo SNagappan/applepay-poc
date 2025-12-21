@@ -9,6 +9,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:3000}
     env_file:
       - .env
     volumes:
