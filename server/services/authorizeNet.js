@@ -270,3 +270,4 @@ class AuthorizeNetService {
 // Export singleton instance
 export default new AuthorizeNetService();
 
+

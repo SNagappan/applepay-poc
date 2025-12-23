@@ -38,10 +38,13 @@ export interface EnvConfig {
   nodeEnv: 'development' | 'production' | 'test';
   isDevelopment: boolean;
 
-  // Apple Pay configuration
-  appleMerchantId: string;
-  appleMerchantCertPath: string;
-  appleMerchantKeyPath: string;
+    // Apple Pay configuration
+    appleMerchantId: string;
+    // Certificate configuration: Environment variables take priority over file paths
+    appleMerchantCert: string;
+    appleMerchantKey: string;
+    appleMerchantCertPath: string;
+    appleMerchantKeyPath: string;
 
   // Authorize.Net configuration
   authorizeNetApiLoginId: string;
@@ -123,6 +126,11 @@ function createConfig(): EnvConfig {
 
     // Apple Pay configuration
     appleMerchantId: getEnvOptional('APPLE_MERCHANT_ID', ''),
+    // Certificate configuration:
+    // - Environment variables (APPLE_MERCHANT_CERT, APPLE_MERCHANT_KEY) take priority for serverless
+    // - File paths (APPLE_MERCHANT_CERT_PATH, APPLE_MERCHANT_KEY_PATH) are used as fallback for local/Docker
+    appleMerchantCert: getEnvOptional('APPLE_MERCHANT_CERT', ''),
+    appleMerchantKey: getEnvOptional('APPLE_MERCHANT_KEY', ''),
     appleMerchantCertPath: resolvePath(
       getEnvOptional('APPLE_MERCHANT_CERT_PATH', './certs/apple-merchant-cert.pem')
     ),

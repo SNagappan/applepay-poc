@@ -415,6 +415,21 @@ class ApplePayApp {
       return;
     }
 
+    // Check if there's already an active session
+    if (this.applePaySession) {
+      logger.info('Apple Pay session already exists, aborting existing session before creating new one');
+      try {
+        // Try to abort existing session if possible
+        if (typeof this.applePaySession.abort === 'function') {
+          this.applePaySession.abort();
+        }
+      } catch (err) {
+        // Ignore errors when aborting
+        logger.info('Error aborting existing session (may already be closed):', err.message);
+      }
+      this.applePaySession = null;
+    }
+
     logger.event('Apple Pay Initiated', { userId: this.userId, amount: this.paymentAmount });
 
     // Create payment request
@@ -464,6 +479,8 @@ class ApplePayApp {
     this.applePaySession.oncancel = (event) => {
       logger.event('Apple Pay: Payment Cancelled');
       this.showStatusMessage('Payment was cancelled', 'info');
+      // Clear session reference when cancelled
+      this.applePaySession = null;
     };
 
     // Handle errors
@@ -474,6 +491,8 @@ class ApplePayApp {
         errorMessage: event.message,
       });
       this.showStatusMessage(`Apple Pay Error: ${event.message || 'Unknown error'}`, 'error');
+      // Clear session reference on error
+      this.applePaySession = null;
     };
 
     // Begin session
@@ -483,6 +502,8 @@ class ApplePayApp {
     } catch (error) {
       logger.error(error, { context: 'Starting Apple Pay session' });
       this.showStatusMessage('Failed to start Apple Pay session', 'error');
+      // Clear session reference if begin() fails
+      this.applePaySession = null;
     }
   }
 
@@ -521,7 +542,12 @@ class ApplePayApp {
       
       // Complete validation with error
       if (this.applePaySession) {
-        this.applePaySession.abort();
+        try {
+          this.applePaySession.abort();
+        } catch (abortError) {
+          // Ignore abort errors
+        }
+        this.applePaySession = null;
       }
       
       this.showStatusMessage('Merchant validation failed. Please check your certificates.', 'error');
@@ -569,6 +595,9 @@ class ApplePayApp {
         // Complete payment with success status
         this.applePaySession.completePayment(ApplePaySession.STATUS_SUCCESS);
         
+        // Clear session reference after successful completion
+        this.applePaySession = null;
+        
         this.showStatusMessage(
           `Payment successful! Transaction ID: ${data.transaction.id}`,
           'success'
@@ -582,7 +611,13 @@ class ApplePayApp {
 
       // Complete payment with failure status
       if (this.applePaySession) {
-        this.applePaySession.completePayment(ApplePaySession.STATUS_FAILURE);
+        try {
+          this.applePaySession.completePayment(ApplePaySession.STATUS_FAILURE);
+        } catch (completeError) {
+          // Ignore errors when completing payment
+        }
+        // Clear session reference after completion
+        this.applePaySession = null;
       }
 
       const errorMessage = error.error?.message || error.message || 'Payment processing failed';

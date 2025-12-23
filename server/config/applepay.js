@@ -49,6 +49,12 @@ class Config {
 
     // Apple Pay configuration
     this.appleMerchantId = process.env.APPLE_MERCHANT_ID || '';
+    
+    // Certificate configuration:
+    // - Environment variables (APPLE_MERCHANT_CERT, APPLE_MERCHANT_KEY) take priority for serverless
+    // - File paths (APPLE_MERCHANT_CERT_PATH, APPLE_MERCHANT_KEY_PATH) are used as fallback for local/Docker
+    this.appleMerchantCert = process.env.APPLE_MERCHANT_CERT || null;
+    this.appleMerchantKey = process.env.APPLE_MERCHANT_KEY || null;
     this.appleMerchantCertPath = resolvePath(
       process.env.APPLE_MERCHANT_CERT_PATH || './certs/apple-merchant-cert.pem'
     );

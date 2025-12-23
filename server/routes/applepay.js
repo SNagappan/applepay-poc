@@ -54,32 +54,67 @@ router.post('/validate', asyncHandler(async (req, res) => {
 
   try {
     // Load merchant identity certificate and private key
+    // Priority: 1. Environment variables (for serverless), 2. File paths (for local/Docker)
     let merchantCert, merchantKey;
 
-    try {
-      merchantCert = fs.readFileSync(config.appleMerchantCertPath, 'utf8');
-    } catch (err) {
-      const error = new Error(`Failed to load merchant certificate: ${err.message}`);
-      error.code = 'ENOENT';
-      error.applePayError = {
-        type: 'CertificateError',
-        message: 'Merchant identity certificate not found',
-        path: config.appleMerchantCertPath,
-      };
-      throw error;
+    // Try environment variables first (recommended for serverless/Vercel)
+    if (process.env.APPLE_MERCHANT_CERT) {
+      merchantCert = process.env.APPLE_MERCHANT_CERT;
+      // Handle escaped newlines (common when pasting PEM content as env var)
+      merchantCert = merchantCert.replace(/\\n/g, '\n');
+      // Handle base64 encoded certificates (common in CI/CD environments)
+      if (!merchantCert.includes('-----BEGIN')) {
+        try {
+          merchantCert = Buffer.from(merchantCert, 'base64').toString('utf8');
+        } catch (base64Error) {
+          // If base64 decode fails, assume it's already in PEM format
+          console.warn('[Apple Pay] Failed to decode base64 certificate, using as-is:', base64Error.message);
+        }
+      }
+    } else {
+      // Fall back to file path (for local/Docker development)
+      try {
+        merchantCert = fs.readFileSync(config.appleMerchantCertPath, 'utf8');
+      } catch (err) {
+        const error = new Error(`Failed to load merchant certificate: ${err.message}`);
+        error.code = 'ENOENT';
+        error.applePayError = {
+          type: 'CertificateError',
+          message: 'Merchant identity certificate not found. Set APPLE_MERCHANT_CERT environment variable or provide file path.',
+          path: config.appleMerchantCertPath,
+        };
+        throw error;
+      }
     }
 
-    try {
-      merchantKey = fs.readFileSync(config.appleMerchantKeyPath, 'utf8');
-    } catch (err) {
-      const error = new Error(`Failed to load merchant private key: ${err.message}`);
-      error.code = 'ENOENT';
-      error.applePayError = {
-        type: 'CertificateError',
-        message: 'Merchant private key not found',
-        path: config.appleMerchantKeyPath,
-      };
-      throw error;
+    // Try environment variables first (recommended for serverless/Vercel)
+    if (process.env.APPLE_MERCHANT_KEY) {
+      merchantKey = process.env.APPLE_MERCHANT_KEY;
+      // Handle escaped newlines (common when pasting PEM content as env var)
+      merchantKey = merchantKey.replace(/\\n/g, '\n');
+      // Handle base64 encoded keys (common in CI/CD environments)
+      if (!merchantKey.includes('-----BEGIN')) {
+        try {
+          merchantKey = Buffer.from(merchantKey, 'base64').toString('utf8');
+        } catch (base64Error) {
+          // If base64 decode fails, assume it's already in PEM format
+          console.warn('[Apple Pay] Failed to decode base64 key, using as-is:', base64Error.message);
+        }
+      }
+    } else {
+      // Fall back to file path (for local/Docker development)
+      try {
+        merchantKey = fs.readFileSync(config.appleMerchantKeyPath, 'utf8');
+      } catch (err) {
+        const error = new Error(`Failed to load merchant private key: ${err.message}`);
+        error.code = 'ENOENT';
+        error.applePayError = {
+          type: 'CertificateError',
+          message: 'Merchant private key not found. Set APPLE_MERCHANT_KEY environment variable or provide file path.',
+          path: config.appleMerchantKeyPath,
+        };
+        throw error;
+      }
     }
 
     // Prepare request data
